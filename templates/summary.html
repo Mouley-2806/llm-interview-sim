@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h3 class="text-center">Interview Summary</h3>
+            
+            <div class="text-center mb-4">
+                <div class="display-4 fw-bold text-primary" id="overall-score">{{ overall_score|default(7) }}</div>
+                <div class="text-muted">Overall Score</div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-check-circle text-success me-2"></i>Strengths</h5>
+                            <ul id="strengths-list">
+                                {% if strengths %}
+                                    {% for strength in strengths %}
+                                        <li>{{ strength }}</li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+                        </div>
+                            <ul id="improvements-list">
+                                {% if improvements %}
+                                    {% for improvement in improvements %}
+                                        <li>{{ improvement }}</li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul id="resources-list">
+                        {% if resources %}
+                            {% for resource in resources %}
+                                <li><a href="{{ resource }}" target="_blank">{{ resource }}</a></li>
+                            {% endfor %}
+                        {% endif %}
+                    </ul>
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-exclamation-circle text-warning me-2"></i>Areas for Improvement</h5>
+                            <ul id="improvements-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card bg-light mt-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-book-open text-primary me-2"></i>Suggested Resources</h5>
+                    <ul id="resources-list"></ul>
+                </div>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <button id="export-pdf" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-file-pdf me-2"></i>Export PDF
+                </button>
+                <button id="new-interview" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Start New Interview
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card p-4">
+            <h4><i class="fas fa-history me-2"></i>Interview History</h4>
+            <div id="history-container">
+                <p class="text-muted">No interview history yet.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const overallScore = document.getElementById('overall-score');
+        const strengthsList = document.getElementById('strengths-list');
+        const improvementsList = document.getElementById('improvements-list');
+        const resourcesList = document.getElementById('resources-list');
+        const exportPdfButton = document.getElementById('export-pdf');
+        const newInterviewButton = document.getElementById('new-interview');
+        const historyContainer = document.getElementById('history-container');
+        
+        // Load summary data
+        fetch('/submit_answer', {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.summary) {
+                // For mock data, just show some example content
+                const strengths = ['Good technical knowledge', 'Clear communication style'];
+                const improvements = ['Provide more specific examples', 'Structure answers more effectively'];
+                const resources = ['https://leetcode.com for technical practice', 'https://interviewing.io for mock interviews'];
+                
+                strengths.forEach(strength => {
+                    const li = document.createElement('li');
+                    li.textContent = strength;
+                    strengthsList.appendChild(li);
+                });
+                
+                improvements.forEach(improvement => {
+                    const li = document.createElement('li');
+                    li.textContent = improvement;
+                    improvementsList.appendChild(li);
+                });
+                
+                resources.forEach(resource => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.href = resource;
+                    a.textContent = resource;
+                    a.target = '_blank';
+                    li.appendChild(a);
+                    resourcesList.appendChild(li);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+        
+        // Load interview history
+        function loadHistory() {
+            fetch('/history')
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    historyContainer.innerHTML = '';
+                    
+                    data.forEach(item => {
+                        const historyItem = document.createElement('div');
+                        historyItem.className = 'history-item';
+                        historyItem.innerHTML = `
+                            <div class="d-flex justify-content-between">
+                                <strong>${item.role}</strong>
+                                <span class="badge bg-${item.type === 'Technical' ? 'primary' : 'info'}">${item.type}</span>
+                            </div>
+                            <div class="text-muted small">${item.date}</div>
+                            <div>Score: ${item.score}/10</div>
+                        `;
+                        historyContainer.appendChild(historyItem);
+                    });
+                } else {
+                    historyContainer.innerHTML = '<p class="text-muted">No interview history yet.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        
+        // Initial load of history
+        loadHistory();
+        
+        // Export PDF
+        exportPdfButton.addEventListener('click', function() {
+            window.location.href = '/export_pdf';
+        });
+        
+        // New interview
+        newInterviewButton.addEventListener('click', function() {
+            window.location.href = '/';
+        });
+    });
+</script>
+{% endblock %}
