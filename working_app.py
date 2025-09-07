@@ -651,111 +651,91 @@ def configure_interview():
 def submit_answer():
     try:
         data = request.get_json()
-        user_answer = data.get('answer')
+        user_answer = data.get('answer', '').strip()
         question_index = session.get('current_question_index', 0)
 
         # Store the answer
         session['user_answers'].append(user_answer)
 
-        # Get feedback for the answer
+        # Get current question
         question = session['questions'][question_index]
         interview_type = session.get('interview_type', 'Technical')
-        
+
+        # Define scoring criteria prompt
         if interview_type == 'Technical':
             scoring_criteria = """
-            Technical Interview Scoring Criteria:
-            - 9-10: Excellent technical depth, clear examples, demonstrates expertise, all information correct
-            - 7-8: Good technical understanding, some examples, mostly correct with minor inaccuracies
-            - 5-6: Basic technical knowledge, limited examples, some gaps or partially incorrect
-            - 3-4: Weak technical understanding, few/no examples, major gaps or significant errors
-            - 1-2: Poor technical knowledge, incorrect information, no examples, fundamental misconceptions
-            """
+Scoring scale (1–10, integers only):
+1–2 = Very poor: fundamentally wrong, no examples, off-topic
+3–4 = Weak: some knowledge but major gaps, vague, missing details
+5–6 = Average: basic understanding, some details but shallow or partially incorrect
+7–8 = Good: mostly correct, some depth, relevant examples
+9–10 = Excellent: technically correct, deep insight, strong examples, clear explanation
+"""
         else:
             scoring_criteria = """
-            Behavioral Interview Scoring Criteria:
-            - 9-10: Excellent STAR method, specific examples, clear outcomes, demonstrates strong competencies
-            - 7-8: Good structure, relevant examples, shows impact, minor gaps in examples
-            - 5-6: Basic structure, some examples, limited impact shown, generic responses
-            - 3-4: Weak structure, vague examples, unclear outcomes, doesn't address the question well
-            - 1-2: Poor structure, no examples, no clear outcomes, completely off-topic or inappropriate
-            """
-        
-        prompt = (
-            f"You are an expert interviewer evaluating a {interview_type.lower()} interview answer for a {session.get('job_role')} position.\n\n"
-            f"Question: {question}\n"
-            f"Answer: {user_answer}\n\n"
-            f"{scoring_criteria}\n"
-            "As an expert interviewer, evaluate this answer holistically and assign a fair score based on:\n"
-            "- Technical accuracy and correctness\n"
-            "- Depth of understanding demonstrated\n"
-            "- Use of specific examples and metrics\n"
-            "- Clarity and structure of response\n"
-            "- Relevance to the question asked\n"
-            "- Demonstration of practical experience\n\n"
-            "Consider the context:\n"
-            "- Is this a junior or senior level position?\n"
-            "- What level of detail is expected for this question?\n"
-            "- Are there any misconceptions that need correction?\n"
-            "- Does the answer show genuine understanding or just memorization?\n\n"
-            "Provide constructive feedback that helps the candidate improve while being honest about their performance.\n"
-            "If there are technical errors, explain what's wrong and provide the correct information.\n\n"
-            "Respond ONLY in this JSON format:\n"
-            "{\n"
-            "  \"feedback\": \"2-3 sentence evaluation highlighting strengths, weaknesses, and areas for improvement\",\n"
-            "  \"score\": 7,\n"
-            "  \"suggestions\": \"One specific actionable improvement tip\",\n"
-            "  \"corrections\": \"If there are technical errors, briefly explain the correct approach\"\n"
-            "}"
-        )
-        feedback = get_ai_response(prompt, expect_json=True)
-        
-        # Normalize feedback structure - be more persistent when AI is enabled
+Scoring scale (1–10, integers only):
+1–2 = Very poor: no STAR structure, irrelevant, off-topic
+3–4 = Weak: vague, generic, missing clear outcomes
+5–6 = Average: some structure, partial relevance, shallow examples
+7–8 = Good: clear STAR, mostly relevant examples, good communication
+9–10 = Excellent: strong STAR, highly relevant, impactful examples
+"""
+
+        # Build strict prompt
+        prompt = f"""
+You are an expert interviewer evaluating a {interview_type.lower()} interview answer for a {session.get('job_role')} position.
+
+Question: {question}
+Answer: {user_answer}
+
+{scoring_criteria}
+
+Return ONLY valid JSON in this format:
+{{
+  "feedback": "2–3 sentences explaining strengths and weaknesses",
+  "score": <integer 1–10>,
+  "suggestions": "One specific actionable improvement",
+  "corrections": "If incorrect, explain briefly the right approach, else empty string"
+}}
+"""
+
+        # Call AI
+        feedback = get_ai_response(prompt, expect_json=True, max_tokens=400)
         fake_ai = os.getenv('FAKE_AI', 'false').lower() in ['1', 'true', 'yes']
-        
+
+        # Normalize feedback
         if isinstance(feedback, dict) and not feedback.get('error'):
-            normalized_feedback_text = feedback.get('feedback') or json.dumps(feedback)
-            normalized_score = feedback.get('score')
+            normalized_feedback_text = feedback.get('feedback') or "No feedback provided."
+            normalized_score = int(feedback.get('score', 3))  # force int, fallback = 3
             normalized_corrections = feedback.get('corrections', '')
         else:
-            # Try multiple AI fallback approaches when AI is enabled
-            if not fake_ai:
-                app.logger.warning(f"Feedback generation failed, trying AI fallback. Detail: {feedback}")
-                
-                fallback_attempts = [
-                    f"Evaluate this answer: {user_answer}. Give feedback, score (1-10), and suggestions. Use JSON format.",
-                    f"Rate this interview answer: {user_answer}. Provide feedback and score. JSON format required.",
-                    f"Assess this response: {user_answer}. Give evaluation and score. Return as JSON."
-                ]
-                
-                for i, fallback_prompt in enumerate(fallback_attempts):
-                    app.logger.info(f"Trying AI feedback fallback attempt {i+1}")
-                    fallback_feedback = get_ai_response(fallback_prompt, expect_json=True, max_tokens=500)
-                    
-                    if isinstance(fallback_feedback, dict) and not fallback_feedback.get('error'):
-                        normalized_feedback_text = fallback_feedback.get('feedback', 'Good response with room for improvement.')
-                        normalized_score = fallback_feedback.get('score', 7)
-                        normalized_corrections = fallback_feedback.get('corrections', '')
-                        app.logger.info(f"AI feedback fallback attempt {i+1} successful")
-                        break
-                else:
-                    # If all AI attempts fail, return error instead of hardcoded
-                    app.logger.error("All AI attempts failed for feedback generation")
-                    return jsonify({'status': 'error', 'message': 'Failed to generate feedback. Please try again.'}), 500
-            else:
-                # In FAKE_AI mode, use hardcoded fallback
-                app.logger.warning(f"Feedback generation failed or invalid, falling back. Detail: {feedback}")
-                normalized_feedback_text = "Good structure and clear communication. Consider adding specific examples to strengthen your response."
-                normalized_score = 7
-                normalized_corrections = ""
+            app.logger.warning(f"AI feedback failed, using fallback. Detail: {feedback}")
 
-        # Store only essential data to avoid session size limits
+            # Penalize weak answers on fallback
+            if not user_answer or len(user_answer.split()) < 5:
+                normalized_feedback_text = "Your answer was too short or incomplete. Try providing more detail and examples."
+                normalized_score = 2
+            else:
+                normalized_feedback_text = "We could not fully evaluate your answer, but it appears to lack depth or clarity."
+                normalized_score = 4
+            normalized_corrections = ""
+
+        # Store feedback in session
         if 'feedback_scores' not in session:
             session['feedback_scores'] = []
-        
-        # Only store the score, not the full feedback object
-        session['feedback_scores'].append(normalized_score)
+        if 'feedback_details' not in session:
+            session['feedback_details'] = []
 
-        # Next or finish
+        session['feedback_scores'].append(normalized_score)
+        session['feedback_details'].append({
+            "question": question,
+            "answer": user_answer,
+            "feedback": normalized_feedback_text,
+            "score": normalized_score,
+            "corrections": normalized_corrections
+        })
+
+        # Next question or finish
         if question_index < len(session['questions']) - 1:
             session['current_question_index'] = question_index + 1
             next_question = session['questions'][session['current_question_index']]
@@ -769,90 +749,38 @@ def submit_answer():
                 'total_questions': len(session['questions'])
             })
         else:
-            # Get all answers for context
+            # --- Generate summary at the end ---
             all_answers = session.get('user_answers', [])
             all_questions = session.get('questions', [])
-            
-            summary_prompt = (
-                f"Generate a comprehensive interview summary for a {session['interview_type']} interview for {session['job_role']} position.\n\n"
-                "Interview Questions and Answers:\n"
-            )
-            
+            summary_prompt = "You are an expert interviewer. Generate a summary based on these Q&A:\n\n"
             for i, (q, a) in enumerate(zip(all_questions, all_answers), 1):
                 summary_prompt += f"Q{i}: {q}\nA{i}: {a}\n\n"
-            
-            summary_prompt += (
-                "You are an expert interviewer providing a comprehensive evaluation of this interview performance.\n\n"
-                "Based on the actual interview responses above, provide:\n"
-                "- 3 specific strengths observed in the answers (be specific, not generic)\n"
-                "- 3 concrete areas for improvement based on the actual responses\n"
-                "- 3 practical resources for improvement\n"
-                "- Overall score (1-10) based on the quality of all answers\n\n"
-                "Scoring Guidelines:\n"
-                "- 9-10: Excellent answers with specific examples, clear structure, demonstrates expertise\n"
-                "- 7-8: Good answers with some examples and clear communication\n"
-                "- 5-6: Average answers with basic structure but limited examples\n"
-                "- 3-4: Below average answers with weak structure and few examples\n"
-                "- 1-2: Poor answers with no structure or examples\n\n"
-                "As an expert interviewer, evaluate holistically considering:\n"
-                "- Technical accuracy and correctness\n"
-                "- Depth of understanding demonstrated\n"
-                "- Use of specific examples and metrics\n"
-                "- Clarity and structure of responses\n"
-                "- Relevance to questions asked\n"
-                "- Demonstration of practical experience\n\n"
-                "Be honest and specific. Base your evaluation on what was actually said in the answers.\n\n"
-                "Respond ONLY in this JSON format:\n"
-                "{\n"
-                "  \"strengths\": [\"Specific strength based on actual answers\", \"Another specific strength\", \"Third specific strength\"],\n"
-                "  \"improvements\": [\"Concrete improvement based on actual gaps\", \"Another concrete improvement\", \"Third concrete improvement\"],\n"
-                "  \"resources\": [\"Practical resource 1\", \"Practical resource 2\", \"Practical resource 3\"],\n"
-                "  \"overall_score\": 7\n"
-                "}"
-            )
-            summary_resp = get_ai_response(summary_prompt, expect_json=True)
+            summary_prompt += """
+Provide JSON in this format:
+{
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "improvements": ["improvement 1", "improvement 2", "improvement 3"],
+  "resources": ["resource 1", "resource 2", "resource 3"],
+  "overall_score": <integer 1–10>
+}
+"""
+
+            summary_resp = get_ai_response(summary_prompt, expect_json=True, max_tokens=400)
+
             if isinstance(summary_resp, dict) and not summary_resp.get('error'):
-                # Store only essential summary data to avoid session size limits
-                session['overall_score'] = summary_resp.get('overall_score', 7)
+                session['overall_score'] = int(summary_resp.get('overall_score',  round(sum(session['feedback_scores'])/len(session['feedback_scores'])) ))
                 session['summary_generated'] = True
                 interview_summary = summary_resp
             else:
-                # Try multiple AI fallback approaches when AI is enabled
-                if not fake_ai:
-                    app.logger.warning(f"Summary generation failed, trying AI fallback. Detail: {summary_resp}")
-                    
-                    fallback_attempts = [
-                        f"Generate interview summary for {session['job_role']} position. Give 3 strengths, 3 improvements, 3 resources, overall score. JSON format.",
-                        f"Create interview evaluation for {session['interview_type']} interview. Provide strengths, improvements, resources, score. Use JSON.",
-                        f"Summarize interview performance for {session['job_role']}. Include strengths, improvements, resources, score. Return JSON."
-                    ]
-                    
-                    for i, fallback_prompt in enumerate(fallback_attempts):
-                        app.logger.info(f"Trying AI summary fallback attempt {i+1}")
-                        fallback_summary = get_ai_response(fallback_prompt, expect_json=True, max_tokens=400)
-                        
-                        if isinstance(fallback_summary, dict) and not fallback_summary.get('error'):
-                            session['overall_score'] = fallback_summary.get('overall_score', normalized_score if isinstance(normalized_score, (int, float)) else 7)
-                            session['summary_generated'] = True
-                            interview_summary = fallback_summary
-                            app.logger.info(f"AI summary fallback attempt {i+1} successful")
-                            break
-                    else:
-                        # If all AI attempts fail, return error instead of hardcoded
-                        app.logger.error("All AI attempts failed for summary generation")
-                        return jsonify({'status': 'error', 'message': 'Failed to generate summary. Please try again.'}), 500
-                else:
-                    # In FAKE_AI mode, use hardcoded fallback
-                    app.logger.warning("AI fallback also failed, using hardcoded summary")
-                    session['overall_score'] = normalized_score if isinstance(normalized_score, (int, float)) else 7
-                    session['summary_generated'] = True
-                    interview_summary = {
-                        'strengths': ['Clear communication style', 'Good problem-solving approach', 'Structured thinking'],
-                        'improvements': ['Provide more specific examples', 'Include metrics and outcomes', 'Expand technical depth'],
-                        'resources': ['Practice coding problems on LeetCode', 'Study system design patterns', 'Review industry best practices'],
-                        'overall_score': session['overall_score']
-                    }
-            session['feedback_received'] = True
+                # fallback summary
+                session['overall_score'] = round(sum(session['feedback_scores'])/len(session['feedback_scores']))
+                session['summary_generated'] = True
+                interview_summary = {
+                    "strengths": ["Good communication"],
+                    "improvements": ["Add more specific examples"],
+                    "resources": ["Practice coding problems"],
+                    "overall_score": session['overall_score']
+                }
 
             return jsonify({
                 'status': 'complete',
@@ -861,9 +789,11 @@ def submit_answer():
                 'corrections': normalized_corrections,
                 'summary': interview_summary
             })
+
     except Exception as e:
         app.logger.error(f"Error in submit_answer: {str(e)}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 @app.route('/current_question', methods=['GET'])
 def current_question():

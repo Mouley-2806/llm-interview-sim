@@ -17,6 +17,46 @@
                 </div>
             </div>
             </div>
+
+            <!-- Per-Question Feedback -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Per-Question Feedback</h5>
+    </div>
+    <div class="card-body">
+        {% if session.feedback_details %}
+            <div class="accordion" id="feedbackAccordion">
+                {% for item in session.feedback_details %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading{{ loop.index }}">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                data-bs-target="#collapse{{ loop.index }}" aria-expanded="false" 
+                                aria-controls="collapse{{ loop.index }}">
+                            Question {{ loop.index }}: {{ item.question }}
+                            <span class="badge bg-primary ms-2">{{ item.score }}/10</span>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                         aria-labelledby="heading{{ loop.index }}" data-bs-parent="#feedbackAccordion">
+                        <div class="accordion-body">
+                            <p><strong>Your Answer:</strong><br>{{ item.answer }}</p>
+                            <p><strong>Feedback:</strong><br>{{ item.feedback }}</p>
+                            {% if item.corrections %}
+                            <div class="alert alert-warning">
+                                <strong>Corrections:</strong><br>{{ item.corrections }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">No detailed feedback available.</p>
+        {% endif %}
+    </div>
+</div>
+
             
         <!-- Analysis Cards -->
         <div class="row g-4 mb-4">
