@@ -2,75 +2,142 @@
 
 {% block content %}
 <div class="row">
-    <div class="col-md-8">
-        <div class="card p-4">
-            <h3 class="text-center">Interview Summary</h3>
-            
-            <div class="text-center mb-4">
-                <div class="display-4 fw-bold text-primary" id="overall-score">{{ overall_score|default(7) }}</div>
-                <div class="text-muted">Overall Score</div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card bg-light">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-check-circle text-success me-2"></i>Strengths</h5>
-                            <ul id="strengths-list">
-                                {% if strengths %}
-                                    {% for strength in strengths %}
-                                        <li>{{ strength }}</li>
-                                    {% endfor %}
-                                {% endif %}
-                            </ul>
-                        </div>
-                            <ul id="improvements-list">
-                                {% if improvements %}
-                                    {% for improvement in improvements %}
-                                        <li>{{ improvement }}</li>
-                                    {% endfor %}
-                                {% endif %}
-                            </ul>
-                </div>
-                <div class="col-md-6">
-                    <ul id="resources-list">
-                        {% if resources %}
-                            {% for resource in resources %}
-                                <li><a href="{{ resource }}" target="_blank">{{ resource }}</a></li>
-                            {% endfor %}
-                        {% endif %}
-                    </ul>
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-exclamation-circle text-warning me-2"></i>Areas for Improvement</h5>
-                            <ul id="improvements-list"></ul>
-                        </div>
+    <div class="col-lg-8">
+        <!-- Score Overview -->
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h2 class="mb-3"><i class="fas fa-trophy me-2"></i>Interview Summary</h2>
+                <div class="score-display mb-4">
+                    <div class="display-1 fw-bold text-primary" id="overall-score">{{ overall_score|default(7) }}</div>
+                    <div class="text-muted fs-5">Overall Score</div>
+                    <div class="progress mt-3" style="height: 8px; max-width: 300px; margin: 0 auto;">
+                        <div class="progress-bar" style="width: {{ (overall_score|default(7) * 10) }}%"></div>
                     </div>
                 </div>
             </div>
-            
-            <div class="card bg-light mt-4">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-book-open text-primary me-2"></i>Suggested Resources</h5>
-                    <ul id="resources-list"></ul>
+        </div>
+        
+        <!-- Analysis Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-6">
+                <div class="card h-100 border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Strengths</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="strengths-list" class="list-unstyled mb-0">
+                            {% for strength in strengths %}
+                                <li class="mb-2">
+                                    <i class="fas fa-arrow-right text-success me-2"></i>
+                                    {{ strength }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                 </div>
             </div>
-            
-            <div class="mt-4 text-center">
-                <button id="export-pdf" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-file-pdf me-2"></i>Export PDF
-                </button>
-                <button id="new-interview" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>Start New Interview
-                </button>
+            <div class="col-md-6">
+                <div class="card h-100 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Areas for Improvement</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="improvements-list" class="list-unstyled mb-0">
+                            {% for improvement in improvements %}
+                                <li class="mb-2">
+                                    <i class="fas fa-arrow-right text-warning me-2"></i>
+                                    {{ improvement }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resources Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-book-open me-2"></i>Suggested Resources</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for resource in resources %}
+                        <div class="col-md-6">
+                            <div class="resource-item p-3 border rounded">
+                                <i class="fas fa-external-link-alt text-primary me-2"></i>
+                                <a href="{{ resource }}" target="_blank" class="text-decoration-none">
+                                    {{ resource }}
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="mb-3">What's Next?</h5>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <button id="export-pdf" class="btn btn-outline-primary btn-lg me-md-2">
+                        <i class="fas fa-file-pdf me-2"></i>Export Report
+                    </button>
+                    <button id="new-interview" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>Start New Interview
+                    </button>
+                </div>
             </div>
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card p-4">
-            <h4><i class="fas fa-history me-2"></i>Interview History</h4>
-            <div id="history-container">
-                <p class="text-muted">No interview history yet.</p>
+    <div class="col-lg-4">
+        <!-- Interview History -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-history me-2"></i>Interview History</h4>
+            </div>
+            <div class="card-body">
+                <div id="history-container">
+                    <p class="text-muted text-center">No interview history yet.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Insights -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Performance Insights</h5>
+            </div>
+            <div class="card-body">
+                <div class="insight-item mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Technical Skills</span>
+                        <span class="badge bg-primary">Good</span>
+                    </div>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar" style="width: 75%"></div>
+                    </div>
+                </div>
+                <div class="insight-item mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Communication</span>
+                        <span class="badge bg-success">Excellent</span>
+                    </div>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-success" style="width: 90%"></div>
+                    </div>
+                </div>
+                <div class="insight-item mb-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Problem Solving</span>
+                        <span class="badge bg-warning">Needs Work</span>
+                    </div>
+                    <div class="progress mt-1" style="height: 4px;">
+                        <div class="progress-bar bg-warning" style="width: 60%"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -89,51 +156,19 @@
         const newInterviewButton = document.getElementById('new-interview');
         const historyContainer = document.getElementById('history-container');
         
-        // Load summary data
-        fetch('/submit_answer', {
-            method: 'GET'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.summary) {
-                // For mock data, just show some example content
-                const strengths = ['Good technical knowledge', 'Clear communication style'];
-                const improvements = ['Provide more specific examples', 'Structure answers more effectively'];
-                const resources = ['https://leetcode.com for technical practice', 'https://interviewing.io for mock interviews'];
-                
-                strengths.forEach(strength => {
-                    const li = document.createElement('li');
-                    li.textContent = strength;
-                    strengthsList.appendChild(li);
-                });
-                
-                improvements.forEach(improvement => {
-                    const li = document.createElement('li');
-                    li.textContent = improvement;
-                    improvementsList.appendChild(li);
-                });
-                
-                resources.forEach(resource => {
-                    const li = document.createElement('li');
-                    const a = document.createElement('a');
-                    a.href = resource;
-                    a.textContent = resource;
-                    a.target = '_blank';
-                    li.appendChild(a);
-                    resourcesList.appendChild(li);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+        // Summary data already rendered server-side
         
         // Load interview history
         function loadHistory() {
             fetch('/history')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.length > 0) {
+                if (data && data.length > 0) {
                     historyContainer.innerHTML = '';
                     
                     data.forEach(item => {
@@ -150,11 +185,12 @@
                         historyContainer.appendChild(historyItem);
                     });
                 } else {
-                    historyContainer.innerHTML = '<p class="text-muted">No interview history yet.</p>';
+                    historyContainer.innerHTML = '<p class="text-muted text-center">No interview history yet.</p>';
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error loading history:', error);
+                historyContainer.innerHTML = '<p class="text-muted text-center">No interview history yet.</p>';
             });
         }
         
