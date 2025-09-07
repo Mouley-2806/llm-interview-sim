@@ -8,74 +8,157 @@
             <div class="card-body text-center">
                 <h2 class="mb-3"><i class="fas fa-trophy me-2"></i>Interview Summary</h2>
                 <div class="score-display mb-4">
-                    <div class="display-1 fw-bold text-primary" id="overall-score">{{ overall_score|default(7) }}</div>
+                    {% set final_score = summary.ai_summary.overall_score if summary and summary.ai_summary and summary.ai_summary.overall_score else (summary.overall_score if summary and summary.overall_score else overall_score|default(7)) %}
+                    <div class="display-1 fw-bold text-primary" id="overall-score">{{ final_score }}</div>
                     <div class="text-muted fs-5">Overall Score</div>
                     <div class="progress mt-3" style="height: 8px; max-width: 300px; margin: 0 auto;">
-                        <div class="progress-bar" style="width: {{ (overall_score|default(7) * 10) }}%"></div>
+                        <div class="progress-bar" style="width: {{ (final_score * 10) }}%"></div>
                     </div>
                 </div>
             </div>
-        </div>
-        
+            </div>
+            
         <!-- Analysis Cards -->
         <div class="row g-4 mb-4">
-            <div class="col-md-6">
+                <div class="col-md-6">
                 <div class="card h-100 border-success">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Strengths</h5>
                     </div>
-                    <div class="card-body">
+                        <div class="card-body">
                         <ul id="strengths-list" class="list-unstyled mb-0">
-                            {% for strength in strengths %}
+                            {% if summary and summary.ai_summary and summary.ai_summary.strengths %}
+                                {% for strength in summary.ai_summary.strengths %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-arrow-right text-success me-2"></i>
+                                        {{ strength }}
+                                    </li>
+                                {% endfor %}
+                            {% elif summary and summary.strengths %}
+                                {% for strength in summary.strengths %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-arrow-right text-success me-2"></i>
+                                        {{ strength }}
+                                    </li>
+                                    {% endfor %}
+                            {% else %}
                                 <li class="mb-2">
                                     <i class="fas fa-arrow-right text-success me-2"></i>
-                                    {{ strength }}
+                                    Good communication skills
                                 </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+                                <li class="mb-2">
+                                    <i class="fas fa-arrow-right text-success me-2"></i>
+                                    Structured thinking approach
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-arrow-right text-success me-2"></i>
+                                    Problem-solving mindset
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
                 </div>
-            </div>
-            <div class="col-md-6">
+                </div>
+                <div class="col-md-6">
                 <div class="card h-100 border-warning">
                     <div class="card-header bg-warning text-dark">
                         <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Areas for Improvement</h5>
                     </div>
                     <div class="card-body">
                         <ul id="improvements-list" class="list-unstyled mb-0">
-                            {% for improvement in improvements %}
+                            {% if summary and summary.ai_summary and summary.ai_summary.improvements %}
+                                {% for improvement in summary.ai_summary.improvements %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-arrow-right text-warning me-2"></i>
+                                        {{ improvement }}
+                                    </li>
+                                {% endfor %}
+                            {% elif summary and summary.improvements %}
+                                {% for improvement in summary.improvements %}
+                                    <li class="mb-2">
+                                        <i class="fas fa-arrow-right text-warning me-2"></i>
+                                        {{ improvement }}
+                                    </li>
+                            {% endfor %}
+                            {% else %}
                                 <li class="mb-2">
                                     <i class="fas fa-arrow-right text-warning me-2"></i>
-                                    {{ improvement }}
+                                    Provide more specific examples
                                 </li>
-                            {% endfor %}
-                        </ul>
+                                <li class="mb-2">
+                                    <i class="fas fa-arrow-right text-warning me-2"></i>
+                                    Include metrics and outcomes
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-arrow-right text-warning me-2"></i>
+                                    Expand technical depth
+                                </li>
+                        {% endif %}
+                    </ul>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        
+            
         <!-- Resources Card -->
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0"><i class="fas fa-book-open me-2"></i>Suggested Resources</h5>
             </div>
-            <div class="card-body">
+                <div class="card-body">
                 <div class="row g-3">
-                    {% for resource in resources %}
+                    {% if summary and summary.ai_summary and summary.ai_summary.resources %}
+                        {% for resource in summary.ai_summary.resources %}
+                            <div class="col-md-6">
+                                <div class="resource-item p-3 border rounded">
+                                    <i class="fas fa-external-link-alt text-primary me-2"></i>
+                                    <a href="{{ resource }}" target="_blank" class="text-decoration-none">
+                                        {{ resource }}
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% elif summary and summary.resources %}
+                        {% for resource in summary.resources %}
+                            <div class="col-md-6">
+                                <div class="resource-item p-3 border rounded">
+                                    <i class="fas fa-external-link-alt text-primary me-2"></i>
+                                    <a href="{{ resource }}" target="_blank" class="text-decoration-none">
+                                        {{ resource }}
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
                         <div class="col-md-6">
                             <div class="resource-item p-3 border rounded">
                                 <i class="fas fa-external-link-alt text-primary me-2"></i>
-                                <a href="{{ resource }}" target="_blank" class="text-decoration-none">
-                                    {{ resource }}
+                                <a href="https://leetcode.com" target="_blank" class="text-decoration-none">
+                                    LeetCode - Practice coding problems
                                 </a>
                             </div>
                         </div>
-                    {% endfor %}
+                        <div class="col-md-6">
+                            <div class="resource-item p-3 border rounded">
+                                <i class="fas fa-external-link-alt text-primary me-2"></i>
+                                <a href="https://roadmap.sh" target="_blank" class="text-decoration-none">
+                                    Roadmap.sh - Learning paths
+                                </a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="resource-item p-3 border rounded">
+                                <i class="fas fa-external-link-alt text-primary me-2"></i>
+                                <a href="https://refactoring.guru" target="_blank" class="text-decoration-none">
+                                    Refactoring Guru - Design patterns
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
                 </div>
             </div>
-        </div>
-        
+            
         <!-- Action Buttons -->
         <div class="card">
             <div class="card-body text-center">
@@ -83,10 +166,10 @@
                 <div class="d-grid gap-2 d-md-flex justify-content-md-center">
                     <button id="export-pdf" class="btn btn-outline-primary btn-lg me-md-2">
                         <i class="fas fa-file-pdf me-2"></i>Export Report
-                    </button>
+                </button>
                     <button id="new-interview" class="btn btn-primary btn-lg">
-                        <i class="fas fa-plus me-2"></i>Start New Interview
-                    </button>
+                    <i class="fas fa-plus me-2"></i>Start New Interview
+                </button>
                 </div>
             </div>
         </div>
@@ -99,7 +182,7 @@
                 <h4 class="mb-0"><i class="fas fa-history me-2"></i>Interview History</h4>
             </div>
             <div class="card-body">
-                <div id="history-container">
+            <div id="history-container">
                     <p class="text-muted text-center">No interview history yet.</p>
                 </div>
             </div>

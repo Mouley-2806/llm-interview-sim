@@ -17,7 +17,7 @@ import requests
 if os.path.exists('env.txt'):
 	load_dotenv('env.txt')
 else:
-	load_dotenv()
+load_dotenv()
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key')
@@ -119,7 +119,7 @@ def get_ai_response(prompt, max_tokens=500, expect_json=False):
     if openrouter_api_key:
         app.logger.debug("AI provider: OpenRouter")
         url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
+    headers = {
             "Authorization": f"Bearer {openrouter_api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "http://localhost:5000",
@@ -128,12 +128,12 @@ def get_ai_response(prompt, max_tokens=500, expect_json=False):
         model = os.getenv('OPENROUTER_MODEL', 'google/gemma-7b-it:free')
         payload = {
             "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": max_tokens,
-            "temperature": 0.7
-        }
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0.7
+    }
         response = requests.post(url, headers=headers, json=payload)
-        if response.status_code != 200:
+    if response.status_code != 200:
             try:
                 detail = response.json()
             except Exception:
@@ -160,20 +160,20 @@ def get_ai_response(prompt, max_tokens=500, expect_json=False):
         except Exception as e:
             return {"error": "HF client error", "detail": str(e)}
 
-        if expect_json:
-            try:
-                return json.loads(content)
-            except Exception:
-                import re
-                match = re.search(r'\{.*\}', content, re.DOTALL)
-                if match:
-                    try:
-                        return json.loads(match.group())
-                    except Exception:
-                        return {"error": "Invalid JSON parsing", "raw": content}
-                else:
-                    return {"error": "Could not parse JSON", "raw": content}
-        return content
+    if expect_json:
+        try:
+            return json.loads(content)
+        except Exception:
+            import re
+            match = re.search(r'\{.*\}', content, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group())
+                except Exception:
+                    return {"error": "Invalid JSON parsing", "raw": content}
+            else:
+                return {"error": "Could not parse JSON", "raw": content}
+    return content
 
     # Default: Together API
     if not together_api_key:
@@ -207,26 +207,6 @@ def get_ai_response(prompt, max_tokens=500, expect_json=False):
         return _parse_json_like(content)
     return content
 
-
-@app.route('/health')
-def health():
-    return jsonify({'status': 'ok', 'message': 'Server is running'})
-
-@app.route('/test')
-def test():
-    try:
-        return jsonify({
-            'status': 'success',
-            'message': 'Test route working',
-            'session_keys': list(session.keys()),
-            'env_vars': {
-                'FAKE_AI': os.getenv('FAKE_AI'),
-                'HUGGINGFACE_API_KEY': 'SET' if os.getenv('HUGGINGFACE_API_KEY') else 'NOT_SET',
-                'OPENROUTER_API_KEY': 'SET' if os.getenv('OPENROUTER_API_KEY') else 'NOT_SET'
-            }
-        })
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/ai_health')
 def ai_health():
@@ -300,29 +280,46 @@ def configure_interview():
         app.logger.debug(f"Received data: {data}")
 
         if not data:
-            app.logger.error("No data received in configure_interview")
             return jsonify({'status': 'error', 'message': 'No data received'}), 400
 
-        # Set session data
-        session['job_role'] = data.get('job_role', 'Software Engineer')
-        session['interview_type'] = data.get('interview_type', 'Technical')
-        session['domain'] = data.get('domain', 'General')
+        session['job_role'] = data.get('job_role')
+        session['interview_type'] = data.get('interview_type')
+        session['domain'] = data.get('domain')
         session['interview_started'] = True
         session['current_question_index'] = 0
         session['user_answers'] = []
         session['feedback_received'] = False
         session['interview_summary'] = None
 
-        # Use default questions for now to test
-        session['questions'] = [
-            "Tell me about a challenging project you worked on and your role.",
-            "How do you approach debugging complex, intermittent issues?",
-            "Describe a time you collaborated across teams to deliver a feature.",
-            "Explain a technical concept to a non-technical stakeholder.",
-            "What would you improve about your last project and why?"
-        ]
+        # Generate questions
+        if session['interview_type'] == 'Technical':
+            prompt = (
+                f"Generate 5 technical interview questions for the role of {session['job_role']} "
+                f"in the domain of {session['domain']}. Respond as a JSON array of strings."
+            )
+        else:
+            prompt = (
+                f"Generate 5 behavioral interview questions for the role of {session['job_role']}. "
+                "Respond as a JSON array of strings."
+            )
 
-        app.logger.debug(f"Using default questions: {session['questions']}")
+        questions_response = get_ai_response(prompt, expect_json=True)
+        # Fallback if AI fails
+        if isinstance(questions_response, dict) and questions_response.get('error'):
+            app.logger.warning(f"Question generation failed, falling back. Detail: {questions_response}")
+            session['questions'] = [
+                "Tell me about a challenging project you worked on and your role.",
+                "How do you approach debugging complex, intermittent issues?",
+                "Describe a time you collaborated across teams to deliver a feature.",
+                "Explain a technical concept to a non-technical stakeholder.",
+                "What would you improve about your last project and why?"
+            ]
+        elif isinstance(questions_response, list):
+            session['questions'] = questions_response
+        else:
+            session['questions'] = [str(questions_response)]
+
+        app.logger.debug(f"Generated questions: {session['questions']}")
 
         return jsonify({
             'status': 'success',
@@ -331,8 +328,8 @@ def configure_interview():
             'total_questions': len(session['questions'])
         })
     except Exception as e:
-        app.logger.error(f"Error in configure_interview: {str(e)}", exc_info=True)
-        return jsonify({'status': 'error', 'message': f'Configuration failed: {str(e)}'}), 500
+        app.logger.error(f"Error in configure_interview: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @app.route('/submit_answer', methods=['POST'])
@@ -419,9 +416,9 @@ def submit_answer():
             else:
                 app.logger.warning(f"Summary generation failed, using fallback. Detail: {summary_resp}")
                 session['interview_summary'] = {
-                    'strengths': ['Clear communication style', 'Good problem-solving approach', 'Structured thinking'],
-                    'improvements': ['Provide more specific examples', 'Include metrics and outcomes', 'Expand technical depth'],
-                    'resources': ['Practice coding problems on LeetCode', 'Study system design patterns', 'Review industry best practices'],
+                    'strengths': ['Good fundamentals', 'Communicates clearly'],
+                    'improvements': ['Add examples with metrics', 'Deepen domain details'],
+                    'resources': ['https://roadmap.sh', 'https://refactoring.guru'],
                     'overall_score': normalized_score if isinstance(normalized_score, (int, float)) else 7
                 }
             session['feedback_received'] = True

@@ -101,56 +101,56 @@
 
 {% block scripts %}
 <script>
-	document.addEventListener('DOMContentLoaded', function () {
-		const interviewForm = document.getElementById('interview-config');
-		const domainSection = document.getElementById('domain-section');
-		const technicalRadio = document.getElementById('technical');
-		const behavioralRadio = document.getElementById('behavioral');
+    document.addEventListener('DOMContentLoaded', function () {
+        const interviewForm = document.getElementById('interview-config');
+        const domainSection = document.getElementById('domain-section');
+        const technicalRadio = document.getElementById('technical');
+        const behavioralRadio = document.getElementById('behavioral');
 
-		if (technicalRadio) {
-			technicalRadio.addEventListener('change', function () {
-				domainSection.style.display = 'block';
-			});
-		}
-		if (behavioralRadio) {
-			behavioralRadio.addEventListener('change', function () {
-				domainSection.style.display = 'none';
-			});
-		}
+        if (technicalRadio) {
+            technicalRadio.addEventListener('change', function () {
+                domainSection.style.display = 'block';
+            });
+        }
+        if (behavioralRadio) {
+            behavioralRadio.addEventListener('change', function () {
+                domainSection.style.display = 'none';
+            });
+        }
 
-		if (interviewForm) {
-			interviewForm.addEventListener('submit', function (e) {
-				e.preventDefault();
-				const jobRole = document.getElementById('job_role').value;
-				const interviewType = document.querySelector('input[name="interview_type"]:checked').value;
-				const domain = interviewType === 'Technical' ? document.getElementById('domain').value : 'N/A';
+        if (interviewForm) {
+            interviewForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const jobRole = document.getElementById('job_role').value;
+                const interviewType = document.querySelector('input[name="interview_type"]:checked').value;
+                const domain = interviewType === 'Technical' ? document.getElementById('domain').value : 'N/A';
 
-				if (!jobRole) {
-					alert('Please select a job role');
-					return;
-				}
+                if (!jobRole) {
+                    alert('Please select a job role');
+                    return;
+                }
 
-				fetch('/configure', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ job_role: jobRole, interview_type: interviewType, domain: domain })
-				})
-					.then(response => {
-						if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
-						return response.json();
-					})
-					.then(data => {
-						if (data.status === 'success') {
+                fetch('/configure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_role: jobRole, interview_type: interviewType, domain: domain })
+                })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
 							window.location.href = '/interview';
-						} else if (data.status === 'error') {
-							alert('Error: ' + data.message);
-						}
-					})
-					.catch(error => {
-						alert('An error occurred while starting the interview. Please try again. Error: ' + error.message);
-					});
-			});
-		}
-	});
+                        } else if (data.status === 'error') {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred while starting the interview. Please try again. Error: ' + error.message);
+                    });
+            });
+        }
+    });
 </script>
 {% endblock %}

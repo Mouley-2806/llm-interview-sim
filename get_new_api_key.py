@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""
+Script to help get a new OpenRouter API key
+"""
+
+print("🔑 OpenRouter API Key Setup")
+print("=" * 50)
+print()
+print("Your current API key is returning 401 'User not found' errors.")
+print("This usually means:")
+print("1. The API key is invalid or expired")
+print("2. The API key was revoked")
+print("3. There's an issue with your OpenRouter account")
+print()
+print("To get a new API key:")
+print("1. Go to: https://openrouter.ai/")
+print("2. Sign up or log in to your account")
+print("3. Go to 'Keys' section in your dashboard")
+print("4. Create a new API key")
+print("5. Copy the key (starts with 'sk-or-v1-')")
+print("6. Update your env.txt file with the new key")
+print()
+print("Example env.txt format:")
+print("OPENROUTER_API_KEY=sk-or-v1-your-new-key-here")
+print("OPENROUTER_MODEL=mistralai/mistral-7b-instruct:free")
+print("FAKE_AI=false")
+print()
+print("After updating env.txt, restart your Flask app.")
+print()
+print("💡 Alternative: Set FAKE_AI=true in env.txt to use mock responses")
+print("   This will let you test the app without a valid API key.")
