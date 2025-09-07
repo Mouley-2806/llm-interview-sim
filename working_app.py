@@ -561,7 +561,9 @@ def configure_interview():
         session['current_question_index'] = 0
         session['user_answers'] = []
         session['feedback_scores'] = []
+        session['feedback_details'] = []
         session['feedback_received'] = False
+        session['interview_complete'] = False
 
         # Generate questions using AI
         if session['interview_type'] == 'Technical':
@@ -650,15 +652,30 @@ def configure_interview():
 @app.route('/submit_answer', methods=['POST'])
 def submit_answer():
     try:
+        if not session.get('interview_started') or 'questions' not in session:
+            return jsonify({'status': 'error', 'message': 'Interview not configured yet'}), 400
+            
         data = request.get_json()
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No answer provided'}), 400
+            
         user_answer = data.get('answer', '').strip()
+        if not user_answer:
+            return jsonify({'status': 'error', 'message': 'Please provide an answer'}), 400
+            
         question_index = session.get('current_question_index', 0)
+        questions = session.get('questions', [])
+        
+        if question_index >= len(questions):
+            return jsonify({'status': 'error', 'message': 'Invalid question index'}), 400
 
         # Store the answer
+        if 'user_answers' not in session:
+            session['user_answers'] = []
         session['user_answers'].append(user_answer)
 
         # Get current question
-        question = session['questions'][question_index]
+        question = questions[question_index]
         interview_type = session.get('interview_type', 'Technical')
 
         # Define scoring criteria prompt
@@ -734,6 +751,9 @@ Return ONLY valid JSON in this format:
             "score": normalized_score,
             "corrections": normalized_corrections
         })
+        
+        # Mark that feedback has been received
+        session['feedback_received'] = True
 
         # Next question or finish
         if question_index < len(session['questions']) - 1:
@@ -773,15 +793,20 @@ Provide JSON in this format:
                 interview_summary = summary_resp
             else:
                 # fallback summary
-                session['overall_score'] = round(sum(session['feedback_scores'])/len(session['feedback_scores']))
+                avg_score = round(sum(session['feedback_scores'])/len(session['feedback_scores'])) if session['feedback_scores'] else 5
+                session['overall_score'] = avg_score
                 session['summary_generated'] = True
                 interview_summary = {
-                    "strengths": ["Good communication"],
-                    "improvements": ["Add more specific examples"],
-                    "resources": ["Practice coding problems"],
+                    "strengths": ["Good communication", "Structured thinking", "Problem-solving approach"],
+                    "improvements": ["Add more specific examples", "Include metrics and outcomes", "Expand technical depth"],
+                    "resources": ["Practice coding problems on LeetCode", "Study system design patterns", "Review industry best practices"],
                     "overall_score": session['overall_score']
                 }
 
+            # Mark interview as complete
+            session['interview_complete'] = True
+            session['final_summary'] = interview_summary
+            
             return jsonify({
                 'status': 'complete',
                 'feedback': normalized_feedback_text,
@@ -799,17 +824,23 @@ Provide JSON in this format:
 def current_question():
     try:
         if not session.get('interview_started') or 'questions' not in session:
-            return jsonify({'status': 'error', 'message': 'Interview not configured yet'}), 400
+            return jsonify({'status': 'error', 'message': 'Interview not configured yet. Please start from the home page.'}), 400
+        
         idx = session.get('current_question_index', 0)
+        questions = session.get('questions', [])
+        
+        if not questions or idx >= len(questions):
+            return jsonify({'status': 'error', 'message': 'No questions available. Please restart the interview.'}), 400
+            
         return jsonify({
             'status': 'success',
-            'question': session['questions'][idx],
+            'question': questions[idx],
             'question_index': idx + 1,
-            'total_questions': len(session['questions'])
+            'total_questions': len(questions)
         })
     except Exception as e:
         app.logger.error(f"Error in current_question: {str(e)}", exc_info=True)
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'status': 'error', 'message': 'Failed to load question. Please try again.'}), 500
 
 @app.route('/history')
 def get_history():
@@ -908,12 +939,13 @@ def export_pdf():
 def summary_page():
     """Render the summary page"""
     try:
-        if not session.get('feedback_received'):
+        if not session.get('feedback_received') and not session.get('interview_complete'):
             return redirect('/')
         
-        # Try to generate AI summary for the summary page
-        summary_content = None
-        if session.get('user_answers') and len(session.get('user_answers', [])) > 0:
+        # Use final summary if available, otherwise try to generate AI summary
+        summary_content = session.get('final_summary')
+        
+        if not summary_content and session.get('user_answers') and len(session.get('user_answers', [])) > 0:
             try:
                 summary_prompt = (
                     f"Generate a comprehensive interview summary for a {session.get('interview_type', 'Technical')} interview for {session.get('job_role', 'Software Engineer')} position. "
@@ -933,6 +965,7 @@ def summary_page():
             'feedback_scores': session.get('feedback_scores', []),
             'questions': session.get('questions', []),
             'user_answers': session.get('user_answers', []),
+            'feedback_details': session.get('feedback_details', []),
             'summary_generated': session.get('summary_generated', False),
             'ai_summary': summary_content if isinstance(summary_content, dict) and not summary_content.get('error') else None
         }
@@ -1008,6 +1041,16 @@ def get_interview_tips():
             'status': 'error',
             'message': str(e)
         }), 500
+
+@app.route('/clear_session', methods=['POST'])
+def clear_session():
+    """Clear the current session data"""
+    try:
+        session.clear()
+        return jsonify({'status': 'success', 'message': 'Session cleared'})
+    except Exception as e:
+        app.logger.error(f"Error clearing session: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
     print("Starting working interview app...")

@@ -152,8 +152,27 @@
 
         // Function to show error message
         function showError(message) {
-            alert('Error: ' + message);
-            window.location.href = '/';
+            console.error('Interview Error:', message);
+            
+            // Create a more user-friendly error display
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-danger mt-3';
+            errorDiv.innerHTML = `
+                <h5><i class='fas fa-exclamation-triangle me-2'></i>Error</h5>
+                <p>${message}</p>
+                <button class='btn btn-outline-danger btn-sm' onclick='window.location.href="/"'>
+                    <i class='fas fa-home me-1'></i>Return to Home
+                </button>
+            `;
+            
+            // Insert error message before the card
+            const card = document.querySelector('.card');
+            if (card && card.parentNode) {
+                card.parentNode.insertBefore(errorDiv, card);
+            } else {
+                alert('Error: ' + message + '\n\nRedirecting to home page...');
+                window.location.href = '/';
+            }
         }
 
         // Load AI-generated tips
@@ -190,6 +209,9 @@
         fetch('/current_question')
         .then(response => {
             if (!response.ok) {
+                if (response.status === 400) {
+                    throw new Error('Interview not configured. Please start from the home page.');
+                }
                 throw new Error('Network response was not ok: ' + response.status);
             }
             return response.json();
@@ -221,7 +243,7 @@
         })
         .catch(error => {
             console.error('Error:', error);
-            showError('Failed to load question. Please try again.');
+            showError(error.message || 'Failed to load question. Please try again.');
         });
         
         // Submit answer
@@ -252,16 +274,23 @@
                 return response.json();
             })
             .then(data => {
+                if (data.status === 'error') {
+                    showError(data.message);
+                    return;
+                }
+                
                 // Show feedback
-                feedbackContent.textContent = data.feedback;
+                feedbackContent.textContent = data.feedback || 'No feedback provided.';
                 if (data.score !== undefined && data.score !== null) {
                     feedbackScore.textContent = data.score;
+                } else {
+                    feedbackScore.textContent = '-';
                 }
                 
                 // Show corrections if provided
                 const correctionsElement = document.getElementById('corrections');
                 const correctionsText = document.getElementById('corrections-text');
-                if (data.corrections && correctionsElement && correctionsText) {
+                if (data.corrections && data.corrections.trim() && correctionsElement && correctionsText) {
                     correctionsText.textContent = data.corrections;
                     correctionsElement.style.display = 'block';
                 } else if (correctionsElement) {
@@ -300,8 +329,6 @@
                         // Re-enable form
                         setFormState(false);
                     }, 3000);
-                } else if (data.status === 'error') {
-                    showError(data.message);
                 }
             })
             .catch(error => {

@@ -130,24 +130,41 @@
                     return;
                 }
 
+                // Show loading state
+                const submitButton = document.querySelector('button[type="submit"]');
+                const originalText = submitButton.innerHTML;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Starting Interview...';
+                submitButton.disabled = true;
+                
                 fetch('/configure', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ job_role: jobRole, interview_type: interviewType, domain: domain })
                 })
                     .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok: ' + response.status);
+                        if (!response.ok) {
+                            if (response.status === 500) {
+                                throw new Error('Server error. Please check your AI configuration and try again.');
+                            }
+                            throw new Error('Network response was not ok: ' + response.status);
+                        }
                         return response.json();
                     })
                     .then(data => {
                         if (data.status === 'success') {
-							window.location.href = '/interview';
+                            window.location.href = '/interview';
                         } else if (data.status === 'error') {
-                            alert('Error: ' + data.message);
+                            throw new Error(data.message || 'Unknown error occurred');
                         }
                     })
                     .catch(error => {
-                        alert('An error occurred while starting the interview. Please try again. Error: ' + error.message);
+                        console.error('Configuration Error:', error);
+                        alert('Error: ' + error.message + '\n\nPlease try again or check your AI configuration.');
+                    })
+                    .finally(() => {
+                        // Restore button state
+                        submitButton.innerHTML = originalText;
+                        submitButton.disabled = false;
                     });
             });
         }
