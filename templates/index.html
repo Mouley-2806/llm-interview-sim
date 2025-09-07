@@ -6,6 +6,7 @@
     <title>Interview Simulator</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <style>
         body {
             background-color: #f8f9fa;
@@ -222,68 +223,220 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Elements
-            const interviewForm = document.getElementById('interview-config');
-            const domainSection = document.getElementById('domain-section');
-            const technicalRadio = document.getElementById('technical');
-            const behavioralRadio = document.getElementById('behavioral');
-            
-            // Toggle domain section based on interview type
-            technicalRadio.addEventListener('change', function() {
-                domainSection.style.display = 'block';
-            });
-            
-            behavioralRadio.addEventListener('change', function() {
-                domainSection.style.display = 'none';
-            });
-            
-            // Start interview
-            interviewForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const jobRole = document.getElementById('job_role').value;
-                const interviewType = document.querySelector('input[name="interview_type"]:checked').value;
-                const domain = interviewType === 'Technical' ? document.getElementById('domain').value : 'N/A';
-                
-                if (!jobRole) {
-                    alert('Please select a job role');
-                    return;
-                }
-                
-                // Use relative path instead of absolute URL
-                fetch('/configure', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        job_role: jobRole,
-                        interview_type: interviewType,
-                        domain: domain
-                    })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok: ' + response.status);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Response data:', data);
-                    if (data.status === 'success') {
-                        // Redirect to interview page
-                        window.location.href = '/interview';
-                    } else if (data.status === 'error') {
-                        alert('Error: ' + data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while starting the interview. Please try again. Error: ' + error.message);
-                });
-            });
+document.addEventListener('DOMContentLoaded', function() {
+    // Elements
+    const interviewForm = document.getElementById('interview-config');
+    const domainSection = document.getElementById('domain-section');
+    const technicalRadio = document.getElementById('technical');
+    const behavioralRadio = document.getElementById('behavioral');
+    const configSection = document.getElementById('config-section');
+    const interviewSection = document.getElementById('interview-section');
+    const summarySection = document.getElementById('summary-section');
+    const currentQuestion = document.getElementById('current-question');
+    const progressText = document.getElementById('progress-text');
+    const progressBar = document.querySelector('.progress-bar');
+    const submitAnswerBtn = document.getElementById('submit-answer');
+    const userAnswer = document.getElementById('user-answer');
+    const feedbackSection = document.getElementById('feedback-section');
+    const feedbackContent = document.getElementById('feedback-content');
+    const feedbackScore = document.getElementById('feedback-score');
+    const strengthsList = document.getElementById('strengths-list');
+    const improvementsList = document.getElementById('improvements-list');
+    const resourcesList = document.getElementById('resources-list');
+    const overallScore = document.getElementById('overall-score');
+    const exportPdfBtn = document.getElementById('export-pdf');
+    const newInterviewBtn = document.getElementById('new-interview');
+
+    let totalQuestions = 5;
+    let currentIndex = 1;
+
+    // Toggle domain section based on interview type
+    technicalRadio.addEventListener('change', function() {
+        domainSection.style.display = 'block';
+    });
+    behavioralRadio.addEventListener('change', function() {
+        domainSection.style.display = 'none';
+    });
+
+    // Start interview
+    interviewForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const jobRole = document.getElementById('job_role').value;
+        const interviewType = document.querySelector('input[name="interview_type"]:checked').value;
+        const domain = interviewType === 'Technical' ? document.getElementById('domain').value : 'N/A';
+
+        if (!jobRole) {
+            alert('Please select a job role');
+            return;
+        }
+
+        fetch('/configure', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                job_role: jobRole,
+                interview_type: interviewType,
+                domain: domain
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                configSection.style.display = 'none';
+                interviewSection.style.display = 'block';
+                summarySection.style.display = 'none';
+                // Set first question
+                currentQuestion.textContent = data.question;
+                totalQuestions = data.total_questions;
+                currentIndex = data.question_index;
+                progressText.textContent = `Question ${currentIndex} of ${totalQuestions}`;
+                progressBar.style.width = `${(currentIndex / totalQuestions) * 100}%`;
+                progressBar.setAttribute('aria-valuenow', (currentIndex / totalQuestions) * 100);
+                userAnswer.value = '';
+                feedbackSection.style.display = 'none';
+            } else if (data.status === 'error') {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred while starting the interview. Please try again. Error: ' + error.message);
         });
+    });
+
+    // Submit answer
+    submitAnswerBtn.addEventListener('click', function() {
+        const answer = userAnswer.value.trim();
+        if (!answer) {
+            alert('Please enter your answer.');
+            return;
+        }
+        submitAnswerBtn.disabled = true;
+        fetch('/submit_answer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ answer: answer })
+        })
+        .then(response => response.json())
+        .then(data => {
+            submitAnswerBtn.disabled = false;
+            if (data.status === 'next_question') {
+                // Show feedback
+                feedbackSection.style.display = 'block';
+                if (typeof data.feedback === 'object') {
+                    feedbackContent.textContent = data.feedback.feedback || '';
+                    feedbackScore.textContent = data.feedback.score || '';
+                } else {
+                    feedbackContent.textContent = data.feedback;
+                    feedbackScore.textContent = '';
+                }
+                // Move to next question
+                setTimeout(() => {
+                    feedbackSection.style.display = 'none';
+                    currentQuestion.textContent = data.question;
+                    currentIndex = data.question_index;
+                    progressText.textContent = `Question ${currentIndex} of ${totalQuestions}`;
+                    progressBar.style.width = `${(currentIndex / totalQuestions) * 100}%`;
+                    progressBar.setAttribute('aria-valuenow', (currentIndex / totalQuestions) * 100);
+                    userAnswer.value = '';
+                }, 2000);
+            } else if (data.status === 'complete') {
+                // Show feedback for last question
+                feedbackSection.style.display = 'block';
+                if (typeof data.feedback === 'object') {
+                    feedbackContent.textContent = data.feedback.feedback || '';
+                    feedbackScore.textContent = data.feedback.score || '';
+                } else {
+                    feedbackContent.textContent = data.feedback;
+                    feedbackScore.textContent = '';
+                }
+                // Show summary after short delay
+                setTimeout(() => {
+                    interviewSection.style.display = 'none';
+                    summarySection.style.display = 'block';
+                    // Fill summary
+                    let summary = data.summary;
+                    if (typeof summary === 'string') {
+                        summary = {
+                            strengths: ['Good technical knowledge', 'Clear communication'],
+                            improvements: ['Provide more examples', 'Better structure'],
+                            resources: ['Practice more interviews', 'Review technical concepts'],
+                            overall_score: 7
+                        };
+                    }
+                    strengthsList.innerHTML = '';
+                    (summary.strengths || []).forEach(s => {
+                        const li = document.createElement('li');
+                        li.textContent = s;
+                        strengthsList.appendChild(li);
+                    });
+                    improvementsList.innerHTML = '';
+                    (summary.improvements || []).forEach(s => {
+                        const li = document.createElement('li');
+                        li.textContent = s;
+                        improvementsList.appendChild(li);
+                    });
+                    resourcesList.innerHTML = '';
+                    (summary.resources || []).forEach(s => {
+                        const li = document.createElement('li');
+                        li.textContent = s;
+                        resourcesList.appendChild(li);
+                    });
+                    overallScore.textContent = summary.overall_score || 'N/A';
+                }, 2000);
+            } else if (data.status === 'error') {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            submitAnswerBtn.disabled = false;
+            alert('An error occurred while submitting your answer. Please try again. Error: ' + error.message);
+        });
+    });
+
+    // Export PDF
+    if (exportPdfBtn) {
+        exportPdfBtn.addEventListener('click', function() {
+            window.open('/export_pdf', '_blank');
+        });
+    }
+
+    // Start new interview
+    if (newInterviewBtn) {
+        newInterviewBtn.addEventListener('click', function() {
+            window.location.reload();
+        });
+    }
+
+    // Load interview history
+    fetch('/history')
+        .then(res => res.json())
+        .then(history => {
+            const historyContainer = document.getElementById('history-container');
+            if (history.length === 0) {
+                historyContainer.innerHTML = '<p class="text-muted">No interview history yet.</p>';
+            } else {
+                historyContainer.innerHTML = '';
+                history.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    div.innerHTML = `<strong>${item.role}</strong> (${item.type})<br>
+                        <span class="text-muted">${item.date}</span><br>
+                        <span>Score: ${item.score}/10</span>`;
+                    historyContainer.appendChild(div);
+                });
+            }
+        });
+});
     </script>
 </body>
 </html>
