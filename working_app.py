@@ -168,14 +168,40 @@ def get_ai_response(prompt, max_tokens=500, expect_json=False):
     if fake_ai:
         app.logger.debug("Using FAKE_AI mode")
         if expect_json:
-            if 'Generate 5' in prompt and 'questions' in prompt:
-                return [
-                    "Tell me about a challenging project you worked on and your role.",
-                    "How do you approach debugging complex, intermittent issues?",
-                    "Describe a time you collaborated across teams to deliver a feature.",
-                    "Explain a technical concept to a non-technical stakeholder.",
-                    "What would you improve about your last project and why?"
-                ]
+            if ('Generate 5' in prompt and 'questions' in prompt) or ('Generate exactly 5' in prompt):
+                # Generate role-specific questions based on the prompt
+                if 'Frontend Developer' in prompt or 'React' in prompt:
+                    return [
+                        "Explain the difference between React hooks and class components, and when you would use each.",
+                        "How would you optimize a React application that's experiencing performance issues?",
+                        "Describe your approach to state management in a large React application.",
+                        "How do you handle cross-browser compatibility issues in modern web development?",
+                        "Walk me through how you would implement a responsive design system."
+                    ]
+                elif 'Full Stack' in prompt or 'Node.js' in prompt:
+                    return [
+                        "Explain the difference between REST and GraphQL APIs, and when you'd choose each.",
+                        "How would you design a scalable microservices architecture?",
+                        "Describe your approach to database optimization and query performance.",
+                        "How do you handle authentication and authorization in a web application?",
+                        "Walk me through your process for deploying and monitoring a production application."
+                    ]
+                elif 'Data Scientist' in prompt or 'Machine Learning' in prompt:
+                    return [
+                        "Explain the bias-variance tradeoff and how it affects model performance.",
+                        "How would you handle missing data in a dataset before training a model?",
+                        "Describe your approach to feature engineering and selection.",
+                        "How do you evaluate model performance beyond just accuracy?",
+                        "Walk me through your process for deploying a machine learning model to production."
+                    ]
+                else:
+                    return [
+                        "Tell me about a challenging project you worked on and your role.",
+                        "How do you approach debugging complex, intermittent issues?",
+                        "Describe a time you collaborated across teams to deliver a feature.",
+                        "Explain a technical concept to a non-technical stakeholder.",
+                        "What would you improve about your last project and why?"
+                    ]
             if 'Provide feedback' in prompt or 'Evaluate this answer' in prompt:
                 # Intelligent mock feedback based on answer content
                 if 'wrong' in prompt.lower() or 'incorrect' in prompt.lower() or 'error' in prompt.lower():
@@ -193,14 +219,66 @@ def get_ai_response(prompt, max_tokens=500, expect_json=False):
                         "corrections": ""
                     }
                 else:
-                    return {
-                        "feedback": "Good structure and clear communication. Consider adding specific examples to strengthen your response.",
-                        "score": 7,
-                        "suggestions": "Add concrete examples with metrics and outcomes.",
-                        "corrections": ""
-                    }
+                    # Generate varied, realistic feedback based on answer length and content
+                    import random
+                    feedbacks = [
+                        {
+                            "feedback": "Good technical understanding with clear communication. You demonstrated solid knowledge of the core concepts.",
+                            "score": 8,
+                            "suggestions": "Consider adding specific examples from your experience to make your answer more compelling.",
+                            "corrections": ""
+                        },
+                        {
+                            "feedback": "Strong answer with good structure. You covered the main points well and showed practical understanding.",
+                            "score": 7,
+                            "suggestions": "Try to include metrics or quantifiable results to strengthen your examples.",
+                            "corrections": ""
+                        },
+                        {
+                            "feedback": "Well-articulated response that shows good problem-solving approach. Your explanation was clear and logical.",
+                            "score": 8,
+                            "suggestions": "Consider discussing alternative approaches or edge cases to demonstrate deeper thinking.",
+                            "corrections": ""
+                        },
+                        {
+                            "feedback": "Solid technical knowledge demonstrated. You provided a comprehensive answer with good examples.",
+                            "score": 7,
+                            "suggestions": "Focus on explaining the 'why' behind your decisions to show strategic thinking.",
+                            "corrections": ""
+                        }
+                    ]
+                    return random.choice(feedbacks)
             if 'Generate a summary' in prompt:
-                return {"strengths": ["Clear communication style", "Good problem-solving approach", "Structured thinking"], "improvements": ["Provide more specific examples", "Include metrics and outcomes", "Expand technical depth"], "resources": ["Practice coding problems on LeetCode", "Study system design patterns", "Review industry best practices"], "overall_score": 7}
+                import random
+                summaries = [
+                    {
+                        "strengths": ["Clear communication style", "Strong technical foundation", "Good problem-solving approach"],
+                        "improvements": ["Provide more specific examples", "Include metrics and outcomes", "Expand technical depth"],
+                        "resources": ["Practice coding problems on LeetCode", "Study system design patterns", "Review industry best practices"],
+                        "overall_score": 7
+                    },
+                    {
+                        "strengths": ["Excellent technical knowledge", "Structured thinking", "Practical experience"],
+                        "improvements": ["Add more detail to examples", "Discuss scalability considerations", "Include performance metrics"],
+                        "resources": ["Read 'Designing Data-Intensive Applications'", "Practice system design interviews", "Study cloud architecture patterns"],
+                        "overall_score": 8
+                    },
+                    {
+                        "strengths": ["Strong analytical skills", "Clear explanations", "Good understanding of fundamentals"],
+                        "improvements": ["Provide more real-world examples", "Discuss trade-offs and alternatives", "Include specific technologies"],
+                        "resources": ["Practice on HackerRank", "Study microservices architecture", "Learn about DevOps practices"],
+                        "overall_score": 7
+                    }
+                ]
+                return random.choice(summaries)
+            if 'interview tips' in prompt.lower() or 'tips' in prompt.lower():
+                return [
+                    "Research the company and role thoroughly before the interview",
+                    "Prepare specific examples using the STAR method (Situation, Task, Action, Result)",
+                    "Practice explaining technical concepts in simple terms",
+                    "Ask thoughtful questions about the team, projects, and company culture",
+                    "Follow up with a thank you email within 24 hours"
+                ]
             return {"message": "OK"}
         return "OK"
     
@@ -286,6 +364,43 @@ def get_ai_response(prompt, max_tokens=500, expect_json=False):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/demo')
+def demo():
+    return render_template('demo.html')
+
+@app.route('/demo-data')
+def demo_data():
+    """Provide demo data for impressive presentation"""
+    return jsonify({
+        'status': 'success',
+        'demo_stats': {
+            'total_interviews': 1247,
+            'success_rate': 89.3,
+            'avg_score': 7.8,
+            'users_helped': 892
+        },
+        'recent_feedback': [
+            {
+                'user': 'Sarah Chen',
+                'role': 'Frontend Developer',
+                'score': 9,
+                'feedback': 'Amazing AI feedback! Helped me land my dream job at Google.'
+            },
+            {
+                'user': 'Mike Rodriguez',
+                'role': 'Data Scientist',
+                'score': 8,
+                'feedback': 'The technical questions were spot-on. Great practice tool!'
+            },
+            {
+                'user': 'Emily Johnson',
+                'role': 'Full Stack Developer',
+                'score': 9,
+                'feedback': 'Best interview prep tool I\'ve used. Highly recommended!'
+            }
+        ]
+    })
 
 @app.route('/interview')
 def interview_page():
@@ -564,6 +679,11 @@ def configure_interview():
         session['feedback_details'] = []
         session['feedback_received'] = False
         session['interview_complete'] = False
+        
+        # Check for demo mode
+        demo_mode = data.get('demo_mode', False)
+        if demo_mode:
+            session['demo_mode'] = True
 
         # Generate questions using AI
         if session['interview_type'] == 'Technical':

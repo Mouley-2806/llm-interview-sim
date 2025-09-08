@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Simulator - Demo</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/demo.css') }}">
+</head>
+<body>
+    <!-- Dark Mode Toggle -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+        <i class="fas fa-moon" id="theme-icon"></i>
+    </button>
+
+    <!-- Hero Section -->
+    <section class="demo-hero">
+        <div class="container">
+            <h1><i class="fas fa-briefcase me-2"></i>AI Interview Simulator</h1>
+            <p>Revolutionary AI-powered interview practice platform designed for hackathons and modern developers</p>
+            <a href="/" class="demo-btn">
+                <i class="fas fa-rocket"></i>
+                Start Your Interview
+            </a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="demo-features">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-4">Why Choose Our Platform?</h2>
+                <p class="text-muted fs-5">Built with cutting-edge technology and modern design principles</p>
+            </div>
+            
+            <div class="demo-feature-grid">
+                <div class="demo-feature-card">
+                    <div class="demo-feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h4>AI-Powered Questions</h4>
+                    <p class="text-muted">Generate custom interview questions tailored to your specific role and domain using advanced AI technology.</p>
+                </div>
+                
+                <div class="demo-feature-card">
+                    <div class="demo-feature-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h4>Instant Feedback</h4>
+                    <p class="text-muted">Receive detailed, constructive feedback on your answers with scoring and improvement suggestions.</p>
+                </div>
+                
+                <div class="demo-feature-card">
+                    <div class="demo-feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h4>Progress Tracking</h4>
+                    <p class="text-muted">Monitor your improvement over time with detailed analytics and performance insights.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="demo-stats">
+        <div class="container">
+            <div class="row g-4 text-center">
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-interviews">1,247</div>
+                        <div class="stat-label">Interviews Completed</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="success-rate">89.3%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="avg-score">7.8</div>
+                        <div class="stat-label">Average Score</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card">
+                        <div class="stat-number" id="users-helped">892</div>
+                        <div class="stat-label">Users Helped</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="demo-testimonials">
+        <div class="container">
+            <h2 class="text-center mb-5">What Our Users Say</h2>
+            <div class="row g-4" id="testimonials-container">
+                <!-- Testimonials will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="demo-cta">
+        <div class="container">
+            <h2>Ready to Ace Your Next Interview?</h2>
+            <p>Join thousands of developers who have improved their interview skills with our AI-powered platform.</p>
+            <a href="/" class="demo-btn">
+                <i class="fas fa-play"></i>
+                Get Started Now
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        Built with <span class="text-danger">❤</span> using Flask & AI
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>
+                        AI Interview Simulator v2.0
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Dark Mode Toggle Script -->
+    <script>
+        // Dark mode functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const body = document.body;
+        
+        // Check for saved theme preference or default to light mode
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        body.setAttribute('data-theme', currentTheme);
+        
+        // Update icon based on current theme
+        function updateThemeIcon(theme) {
+            if (theme === 'dark') {
+                themeIcon.className = 'fas fa-sun';
+            } else {
+                themeIcon.className = 'fas fa-moon';
+            }
+        }
+        
+        // Initialize icon
+        updateThemeIcon(currentTheme);
+        
+        // Toggle theme
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        });
+        
+        // Add smooth transitions for theme changes
+        const style = document.createElement('style');
+        style.textContent = `
+            * {
+                transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Load demo data
+        fetch('/demo-data')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update stats
+                    document.getElementById('total-interviews').textContent = data.demo_stats.total_interviews.toLocaleString();
+                    document.getElementById('success-rate').textContent = data.demo_stats.success_rate + '%';
+                    document.getElementById('avg-score').textContent = data.demo_stats.avg_score;
+                    document.getElementById('users-helped').textContent = data.demo_stats.users_helped.toLocaleString();
+                    
+                    // Load testimonials
+                    const container = document.getElementById('testimonials-container');
+                    data.recent_feedback.forEach((testimonial, index) => {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-4';
+                        col.innerHTML = `
+                            <div class="testimonial-card">
+                                <div class="testimonial-content">
+                                    <p>"${testimonial.feedback}"</p>
+                                </div>
+                                <div class="testimonial-author">
+                                    <div class="author-info">
+                                        <h6>${testimonial.user}</h6>
+                                        <span class="author-role">${testimonial.role}</span>
+                                    </div>
+                                    <div class="testimonial-score">
+                                        <span class="score">${testimonial.score}/10</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(col);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading demo data:', error);
+            });
+    </script>
+</body>
+</html>

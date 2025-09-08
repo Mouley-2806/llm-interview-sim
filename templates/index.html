@@ -57,10 +57,16 @@
 						<div class="form-text">Specify the technical focus area for your interview</div>
 					</div>
 					
-					<div class="d-grid">
-						<button type="submit" class="btn btn-primary btn-lg">
+					<div class="d-grid gap-2">
+						<button type="submit" class="btn btn-primary btn-lg glow-effect">
 							<i class="fas fa-play me-2"></i>Start Interview
 						</button>
+						<button type="button" id="demo-interview" class="btn btn-success btn-lg interactive-hover">
+							<i class="fas fa-magic me-2"></i>Quick Demo
+						</button>
+						<a href="/demo" class="btn btn-outline-primary interactive-hover">
+							<i class="fas fa-eye me-2"></i>View Demo Page
+						</a>
 					</div>
 				</form>
 			</div>
@@ -72,24 +78,63 @@
 				<h5 class="card-title"><i class="fas fa-star me-2"></i>What You'll Get</h5>
 				<div class="row g-3">
 					<div class="col-md-4">
-						<div class="text-center">
-							<i class="fas fa-question-circle fa-2x text-primary mb-2"></i>
-							<h6>5 Custom Questions</h6>
+						<div class="feature-item text-center p-3">
+							<div class="feature-icon mb-3">
+								<i class="fas fa-question-circle fa-3x"></i>
+							</div>
+							<h6 class="fw-bold">5 Custom Questions</h6>
 							<small class="text-muted">Tailored to your role and domain</small>
 						</div>
 					</div>
 					<div class="col-md-4">
-						<div class="text-center">
-							<i class="fas fa-comment-dots fa-2x text-success mb-2"></i>
-							<h6>AI Feedback</h6>
+						<div class="feature-item text-center p-3">
+							<div class="feature-icon mb-3">
+								<i class="fas fa-comment-dots fa-3x"></i>
+							</div>
+							<h6 class="fw-bold">AI Feedback</h6>
 							<small class="text-muted">Instant evaluation and suggestions</small>
 						</div>
 					</div>
 					<div class="col-md-4">
-						<div class="text-center">
-							<i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
-							<h6>Progress Tracking</h6>
+						<div class="feature-item text-center p-3">
+							<div class="feature-icon mb-3">
+								<i class="fas fa-chart-line fa-3x"></i>
+							</div>
+							<h6 class="fw-bold">Progress Tracking</h6>
 							<small class="text-muted">Monitor your improvement over time</small>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- Stats Card -->
+		<div class="card mt-4">
+			<div class="card-body">
+				<h5 class="card-title"><i class="fas fa-trophy me-2"></i>Hackathon Ready</h5>
+				<div class="row g-3 text-center">
+					<div class="col-md-3">
+						<div class="stat-item">
+							<div class="stat-number">100%</div>
+							<div class="stat-label">AI Powered</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="stat-item">
+							<div class="stat-number">5</div>
+							<div class="stat-label">Questions</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="stat-item">
+							<div class="stat-number">24/7</div>
+							<div class="stat-label">Available</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="stat-item">
+							<div class="stat-number">∞</div>
+							<div class="stat-label">Practice</div>
 						</div>
 					</div>
 				</div>
@@ -165,6 +210,47 @@
                         // Restore button state
                         submitButton.innerHTML = originalText;
                         submitButton.disabled = false;
+                    });
+            });
+        }
+        
+        // Demo interview button
+        const demoButton = document.getElementById('demo-interview');
+        if (demoButton) {
+            demoButton.addEventListener('click', function() {
+                // Pre-fill form with demo data
+                document.getElementById('job_role').value = 'Full Stack Developer';
+                document.getElementById('technical').checked = true;
+                document.getElementById('domain').value = 'React & Node.js';
+                
+                // Show loading state
+                const originalText = demoButton.innerHTML;
+                demoButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Starting Demo...';
+                demoButton.disabled = true;
+                
+                // Submit with demo mode
+                fetch('/configure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        job_role: 'Full Stack Developer', 
+                        interview_type: 'Technical', 
+                        domain: 'React & Node.js',
+                        demo_mode: true
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            window.location.href = '/interview';
+                        } else {
+                            throw new Error(data.message || 'Demo failed');
+                        }
+                    })
+                    .catch(error => {
+                        alert('Demo Error: ' + error.message);
+                        demoButton.innerHTML = originalText;
+                        demoButton.disabled = false;
                     });
             });
         }
